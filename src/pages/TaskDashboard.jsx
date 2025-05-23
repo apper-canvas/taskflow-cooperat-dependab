@@ -235,6 +235,17 @@ const TaskDashboard = () => {
           ))}
         </div>
 
+        {/* Filter Instructions */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-xl mb-6">
+          <div className="flex items-center space-x-2 mb-2">
+            <ApperIcon name="Info" className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Filter & Sort Options</h3>
+          </div>
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            Use the filters below to view specific task categories (All, Pending, Completed, High Priority, Overdue) and sort them by due date, priority level, or creation date. The search bar allows you to find tasks by title, description, category, or tags.
+          </p>
+        </div>
+
         {/* Controls */}
         <div className="bg-white dark:bg-surface-800 p-4 rounded-xl border border-surface-200 dark:border-surface-700 mb-6">
           <div className="flex flex-col lg:flex-row gap-4">
