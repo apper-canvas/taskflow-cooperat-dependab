@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'react-toastify'
-import { format, isToday, isTomorrow, isYesterday, addDays } from 'date-fns'
-import ApperIcon from './ApperIcon'
+import { format, isToday, isTomorrow, isYesterday } from 'date-fns'
+import ApperIcon from '../components/ApperIcon'
 
-const MainFeature = () => {
+const TaskDashboard = () => {
   const [tasks, setTasks] = useState([])
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
     priority: 'medium',
     dueDate: '',
+    category: '',
     tags: ''
   })
   const [filter, setFilter] = useState('all')
@@ -49,6 +50,7 @@ const MainFeature = () => {
       priority: newTask.priority,
       status: editingTask ? editingTask.status : 'todo',
       dueDate: newTask.dueDate,
+      category: newTask.category.trim(),
       tags: newTask.tags.split(',').map(tag => tag.trim()).filter(Boolean),
       createdAt: editingTask ? editingTask.createdAt : new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -63,7 +65,7 @@ const MainFeature = () => {
       toast.success("Task created successfully!")
     }
 
-    setNewTask({ title: '', description: '', priority: 'medium', dueDate: '', tags: '' })
+    setNewTask({ title: '', description: '', priority: 'medium', dueDate: '', category: '', tags: '' })
     setShowForm(false)
   }
 
@@ -73,6 +75,7 @@ const MainFeature = () => {
       description: task.description,
       priority: task.priority,
       dueDate: task.dueDate,
+      category: task.category,
       tags: task.tags.join(', ')
     })
     setEditingTask(task)
@@ -80,14 +83,17 @@ const MainFeature = () => {
   }
 
   const handleDelete = (id) => {
-    setTasks(prev => prev.filter(t => t.id !== id))
-    toast.success("Task deleted successfully!")
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      setTasks(prev => prev.filter(t => t.id !== id))
+      toast.success("Task deleted successfully!")
+    }
   }
 
   const toggleStatus = (id) => {
     setTasks(prev => prev.map(task => {
       if (task.id === id) {
         const newStatus = task.status === 'completed' ? 'todo' : 'completed'
+        toast.success(newStatus === 'completed' ? 'Task completed!' : 'Task reopened!')
         return { ...task, status: newStatus, updatedAt: new Date().toISOString() }
       }
       return task
@@ -129,6 +135,7 @@ const MainFeature = () => {
     .filter(task => 
       task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       task.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
     )
     .sort((a, b) => {
@@ -173,71 +180,84 @@ const MainFeature = () => {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-surface-50 dark:bg-surface-900">
+      {/* Header */}
+      <div className="bg-white dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center">
+                <ApperIcon name="CheckSquare" className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-xl sm:text-2xl font-bold text-surface-900 dark:text-surface-100">
+                TaskFlow
+              </h1>
+            </div>
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200"
+            >
+              <ApperIcon name="Plus" className="w-4 h-4" />
+              <span className="hidden sm:inline">Add Task</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Stats Dashboard */}
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12"
-        >
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Total Tasks', value: taskStats.total, icon: 'List', color: 'from-blue-500 to-blue-600' },
+            { label: 'Total', value: taskStats.total, icon: 'List', color: 'from-blue-500 to-blue-600' },
             { label: 'Completed', value: taskStats.completed, icon: 'CheckCircle2', color: 'from-green-500 to-green-600' },
             { label: 'Pending', value: taskStats.pending, icon: 'Clock', color: 'from-yellow-500 to-yellow-600' },
             { label: 'Overdue', value: taskStats.overdue, icon: 'AlertTriangle', color: 'from-red-500 to-red-600' }
           ].map((stat, index) => (
             <motion.div
               key={stat.label}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.3 + index * 0.1, type: "spring", stiffness: 200 }}
-              className="bg-white dark:bg-surface-800 p-4 sm:p-6 rounded-2xl shadow-soft border border-surface-200 dark:border-surface-700"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-white dark:bg-surface-800 p-4 rounded-xl border border-surface-200 dark:border-surface-700"
             >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-surface-600 dark:text-surface-400 mb-1">{stat.label}</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-surface-900 dark:text-surface-100">
+                  <p className="text-2xl font-bold text-surface-900 dark:text-surface-100">
                     {stat.value}
                   </p>
                 </div>
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center`}>
-                  <ApperIcon name={stat.icon} className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <div className={`w-10 h-10 bg-gradient-to-br ${stat.color} rounded-lg flex items-center justify-center`}>
+                  <ApperIcon name={stat.icon} className="w-5 h-5 text-white" />
                 </div>
               </div>
             </motion.div>
           ))}
-        </motion.div>
+        </div>
 
         {/* Controls */}
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-surface-800 p-4 sm:p-6 lg:p-8 rounded-2xl shadow-soft border border-surface-200 dark:border-surface-700 mb-6 sm:mb-8"
-        >
-          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+        <div className="bg-white dark:bg-surface-800 p-4 rounded-xl border border-surface-200 dark:border-surface-700 mb-6">
+          <div className="flex flex-col lg:flex-row gap-4">
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
-                <ApperIcon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-surface-400" />
+                <ApperIcon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-surface-400" />
                 <input
                   type="text"
                   placeholder="Search tasks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-surface-300 dark:border-surface-600 bg-surface-50 dark:bg-surface-700 text-surface-900 dark:text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-surface-300 dark:border-surface-600 bg-surface-50 dark:bg-surface-700 text-surface-900 dark:text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
                 />
               </div>
             </div>
 
             {/* Filters & Sort */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="flex gap-3">
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="px-4 py-3 rounded-xl border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
+                className="px-3 py-2.5 rounded-lg border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
               >
                 <option value="all">All Tasks</option>
                 <option value="pending">Pending</option>
@@ -249,23 +269,15 @@ const MainFeature = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-3 rounded-xl border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
+                className="px-3 py-2.5 rounded-lg border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
               >
                 <option value="dueDate">Due Date</option>
                 <option value="priority">Priority</option>
                 <option value="created">Created</option>
               </select>
-
-              <button
-                onClick={() => setShowForm(true)}
-                className="btn-primary flex items-center justify-center space-x-2 whitespace-nowrap"
-              >
-                <ApperIcon name="Plus" className="w-5 h-5" />
-                <span className="hidden sm:inline">Add Task</span>
-              </button>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Task Form Modal */}
         <AnimatePresence>
@@ -278,7 +290,7 @@ const MainFeature = () => {
               onClick={() => {
                 setShowForm(false)
                 setEditingTask(null)
-                setNewTask({ title: '', description: '', priority: 'medium', dueDate: '', tags: '' })
+                setNewTask({ title: '', description: '', priority: 'medium', dueDate: '', category: '', tags: '' })
               }}
             >
               <motion.div
@@ -286,61 +298,61 @@ const MainFeature = () => {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-surface-800 p-6 sm:p-8 rounded-2xl shadow-soft border border-surface-200 dark:border-surface-700 w-full max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto"
+                className="bg-white dark:bg-surface-800 p-6 rounded-xl border border-surface-200 dark:border-surface-700 w-full max-w-md max-h-[90vh] overflow-y-auto"
               >
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl sm:text-2xl font-bold text-surface-900 dark:text-surface-100">
+                  <h3 className="text-xl font-bold text-surface-900 dark:text-surface-100">
                     {editingTask ? 'Edit Task' : 'Create New Task'}
                   </h3>
                   <button
                     onClick={() => {
                       setShowForm(false)
                       setEditingTask(null)
-                      setNewTask({ title: '', description: '', priority: 'medium', dueDate: '', tags: '' })
+                      setNewTask({ title: '', description: '', priority: 'medium', dueDate: '', category: '', tags: '' })
                     }}
-                    className="p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors duration-200"
+                    className="p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors duration-200"
                   >
                     <ApperIcon name="X" className="w-5 h-5 text-surface-500" />
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
+                    <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
                       Task Title *
                     </label>
                     <input
                       type="text"
                       value={newTask.title}
                       onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
-                      className="input-field"
+                      className="w-full px-3 py-2.5 rounded-lg border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-900 dark:text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
                       placeholder="Enter task title..."
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
+                    <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
                       Description
                     </label>
                     <textarea
                       value={newTask.description}
                       onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
-                      className="input-field resize-none"
+                      className="w-full px-3 py-2.5 rounded-lg border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-900 dark:text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 resize-none"
                       rows="3"
                       placeholder="Add task description..."
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
+                      <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
                         Priority
                       </label>
                       <select
                         value={newTask.priority}
                         onChange={(e) => setNewTask(prev => ({ ...prev, priority: e.target.value }))}
-                        className="input-field"
+                        className="w-full px-3 py-2.5 rounded-lg border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                       >
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
@@ -349,38 +361,51 @@ const MainFeature = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
+                      <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
                         Due Date
                       </label>
                       <input
                         type="date"
                         value={newTask.dueDate}
                         onChange={(e) => setNewTask(prev => ({ ...prev, dueDate: e.target.value }))}
-                        className="input-field"
+                        className="w-full px-3 py-2.5 rounded-lg border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                         min={format(new Date(), 'yyyy-MM-dd')}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
+                    <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                      Category
+                    </label>
+                    <input
+                      type="text"
+                      value={newTask.category}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-lg border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-900 dark:text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                      placeholder="Work, Personal, Project..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
                       Tags (comma separated)
                     </label>
                     <input
                       type="text"
                       value={newTask.tags}
                       onChange={(e) => setNewTask(prev => ({ ...prev, tags: e.target.value }))}
-                      className="input-field"
-                      placeholder="work, urgent, project..."
+                      className="w-full px-3 py-2.5 rounded-lg border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-900 dark:text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                      placeholder="urgent, meeting, review..."
                     />
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <div className="flex gap-3 pt-4">
                     <button
                       type="submit"
-                      className="btn-primary flex-1 flex items-center justify-center space-x-2"
+                      className="flex-1 bg-primary hover:bg-primary-dark text-white py-2.5 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
                     >
-                      <ApperIcon name={editingTask ? "Save" : "Plus"} className="w-5 h-5" />
+                      <ApperIcon name={editingTask ? "Save" : "Plus"} className="w-4 h-4" />
                       <span>{editingTask ? 'Update Task' : 'Create Task'}</span>
                     </button>
                     <button
@@ -388,9 +413,9 @@ const MainFeature = () => {
                       onClick={() => {
                         setShowForm(false)
                         setEditingTask(null)
-                        setNewTask({ title: '', description: '', priority: 'medium', dueDate: '', tags: '' })
+                        setNewTask({ title: '', description: '', priority: 'medium', dueDate: '', category: '', tags: '' })
                       }}
-                      className="btn-secondary flex-1"
+                      className="flex-1 bg-surface-200 hover:bg-surface-300 dark:bg-surface-700 dark:hover:bg-surface-600 text-surface-900 dark:text-surface-100 py-2.5 px-4 rounded-lg font-medium transition-colors duration-200"
                     >
                       Cancel
                     </button>
@@ -402,33 +427,33 @@ const MainFeature = () => {
         </AnimatePresence>
 
         {/* Tasks List */}
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-4">
           <AnimatePresence>
             {filteredAndSortedTasks.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-center py-12 sm:py-16"
+                className="text-center py-12"
               >
-                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-surface-100 dark:bg-surface-700 rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                  <ApperIcon name="ListTodo" className="w-10 h-10 sm:w-12 sm:h-12 text-surface-400" />
+                <div className="w-16 h-16 bg-surface-100 dark:bg-surface-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <ApperIcon name="ListTodo" className="w-8 h-8 text-surface-400" />
                 </div>
-                <h3 className="text-lg sm:text-xl font-semibold text-surface-900 dark:text-surface-100 mb-2">
+                <h3 className="text-lg font-semibold text-surface-900 dark:text-surface-100 mb-2">
                   {searchQuery || filter !== 'all' ? 'No tasks found' : 'No tasks yet'}
                 </h3>
-                <p className="text-surface-600 dark:text-surface-400 mb-6 text-sm sm:text-base">
+                <p className="text-surface-600 dark:text-surface-400 mb-6">
                   {searchQuery || filter !== 'all' 
                     ? 'Try adjusting your search or filter criteria' 
-                    : 'Create your first task to get started with TaskFlow'
+                    : 'Create your first task to get started'
                   }
                 </p>
                 {!searchQuery && filter === 'all' && (
                   <button
                     onClick={() => setShowForm(true)}
-                    className="btn-primary"
+                    className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 inline-flex items-center space-x-2"
                   >
-                    <ApperIcon name="Plus" className="w-5 h-5 mr-2" />
-                    Create First Task
+                    <ApperIcon name="Plus" className="w-4 h-4" />
+                    <span>Create First Task</span>
                   </button>
                 )}
               </motion.div>
@@ -440,32 +465,30 @@ const MainFeature = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ delay: index * 0.05 }}
-                  className={`group bg-white dark:bg-surface-800 p-4 sm:p-6 rounded-2xl shadow-soft border transition-all duration-300 hover:shadow-card ${
+                  className={`bg-white dark:bg-surface-800 p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${
                     task.status === 'completed' 
-                      ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/10' 
+                      ? 'border-green-200 dark:border-green-800 bg-green-50/30 dark:bg-green-900/10' 
                       : 'border-surface-200 dark:border-surface-700 hover:border-primary/30'
                   }`}
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  <div className="flex items-start gap-4">
                     {/* Checkbox */}
-                    <div className="flex-shrink-0">
-                      <button
-                        onClick={() => toggleStatus(task.id)}
-                        className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 ${
-                          task.status === 'completed'
-                            ? 'bg-green-500 border-green-500 text-white'
-                            : 'border-surface-300 dark:border-surface-600 hover:border-primary'
-                        }`}
-                      >
-                        {task.status === 'completed' && (
-                          <ApperIcon name="Check" className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => toggleStatus(task.id)}
+                      className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                        task.status === 'completed'
+                          ? 'bg-green-500 border-green-500 text-white'
+                          : 'border-surface-300 dark:border-surface-600 hover:border-primary'
+                      }`}
+                    >
+                      {task.status === 'completed' && (
+                        <ApperIcon name="Check" className="w-3 h-3" />
+                      )}
+                    </button>
 
                     {/* Task Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4 mb-3">
+                      <div className="flex items-start justify-between gap-4 mb-2">
                         <h4 className={`text-lg font-semibold ${
                           task.status === 'completed' 
                             ? 'text-surface-500 dark:text-surface-400 line-through' 
@@ -475,7 +498,7 @@ const MainFeature = () => {
                         </h4>
                         
                         {/* Priority Badge */}
-                        <div className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${getPriorityColor(task.priority)} flex-shrink-0`}>
+                        <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getPriorityColor(task.priority)} flex-shrink-0`}>
                           <ApperIcon name={getPriorityIcon(task.priority)} className="w-3 h-3 mr-1" />
                           {task.priority}
                         </div>
@@ -492,11 +515,17 @@ const MainFeature = () => {
                       )}
 
                       {/* Meta Info */}
-                      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-surface-500 dark:text-surface-400 mb-4">
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-surface-500 dark:text-surface-400 mb-3">
                         {task.dueDate && (
                           <div className={`flex items-center space-x-1 ${getDueDateColor(task.dueDate)}`}>
                             <ApperIcon name="Calendar" className="w-3 h-3" />
                             <span>{formatDueDate(task.dueDate)}</span>
+                          </div>
+                        )}
+                        {task.category && (
+                          <div className="flex items-center space-x-1">
+                            <ApperIcon name="Folder" className="w-3 h-3" />
+                            <span>{task.category}</span>
                           </div>
                         )}
                         <div className="flex items-center space-x-1">
@@ -507,11 +536,11 @@ const MainFeature = () => {
 
                       {/* Tags */}
                       {task.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
+                        <div className="flex flex-wrap gap-1 mb-3">
                           {task.tags.map((tag, tagIndex) => (
                             <span
                               key={tagIndex}
-                              className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-lg font-medium"
+                              className="px-2 py-1 bg-primary/10 text-primary text-xs rounded font-medium"
                             >
                               #{tag}
                             </span>
@@ -521,16 +550,16 @@ const MainFeature = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center space-x-2 flex-shrink-0">
+                    <div className="flex items-center space-x-1 flex-shrink-0">
                       <button
                         onClick={() => handleEdit(task)}
-                        className="p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors duration-200"
+                        className="p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors duration-200"
                       >
                         <ApperIcon name="Edit2" className="w-4 h-4 text-surface-500 hover:text-primary" />
                       </button>
                       <button
                         onClick={() => handleDelete(task.id)}
-                        className="p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
+                        className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
                       >
                         <ApperIcon name="Trash2" className="w-4 h-4 text-surface-500 hover:text-red-500" />
                       </button>
@@ -546,4 +575,4 @@ const MainFeature = () => {
   )
 }
 
-export default MainFeature
+export default TaskDashboard
