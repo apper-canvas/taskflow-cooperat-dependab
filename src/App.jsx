@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import TaskDashboard from './pages/TaskDashboard'
+import Projects from './pages/Projects'
 import NotFound from './pages/NotFound'
 
 function App() {
@@ -9,6 +10,7 @@ function App() {
     <div className="min-h-screen bg-surface-50 dark:bg-surface-900">
       <Routes>
         <Route path="/" element={<TaskDashboard />} />
+        <Route path="/projects" element={<Projects />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       

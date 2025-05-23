@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'react-toastify'
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns'
 import ApperIcon from '../components/ApperIcon'
 
+  const navigate = useNavigate()
 const TaskDashboard = () => {
   const [tasks, setTasks] = useState([])
   const [newTask, setNewTask] = useState({
@@ -202,6 +204,33 @@ const TaskDashboard = () => {
             </button>
           </div>
         </div>
+      {/* Navigation */}
+      <nav className="bg-white dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-8">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-primary to-primary-dark rounded-lg flex items-center justify-center">
+                  <ApperIcon name="CheckSquare" className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold text-surface-900 dark:text-surface-100">TaskFlow</span>
+              </div>
+              <div className="hidden md:flex space-x-6">
+                <button className="text-primary font-medium px-3 py-2 rounded-lg bg-primary/10">
+                  Tasks
+                </button>
+                <button
+                  onClick={() => navigate('/projects')}
+                  className="text-surface-600 dark:text-surface-400 hover:text-primary transition-colors px-3 py-2 rounded-lg"
+                >
+                  Projects
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
